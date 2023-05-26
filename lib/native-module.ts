@@ -87,7 +87,10 @@ export interface IRNWatchNativeModule extends EventSubscriptionVendor {
     replyCallback: (b64ResponseData: string) => void,
     errorCallback: (err: Error) => void,
   ) => void;
-
+  
+  addListener: (eventType: string) => void;
+  removeListeners: (count: number) => void;
+  
   transferCurrentComplicationUserInfo: (userInfo: WatchPayload) => void;
 
   transferFile: (url: string, metaData: WatchPayload | null) => Promise<string>;
