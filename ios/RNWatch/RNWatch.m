@@ -69,7 +69,7 @@ RCT_EXPORT_MODULE()
     self.fileTransfers = [NSMutableDictionary new];
     self.queuedFiles = [NSMutableDictionary new];
     self.queuedUserInfo = [NSMutableDictionary new];
- 
+
     hasObservers = NO;
     pendingEvents = [NSMutableArray array];
 
@@ -108,7 +108,7 @@ RCT_EXPORT_MODULE()
 
 -(void)startObserving {
   hasObservers = YES;
- 
+
   for (NSDictionary *event in pendingEvents) {
       [self sendEventWithName:[event objectForKey:@"name"] body:[event objectForKey:@"body"]];
   }
@@ -252,7 +252,7 @@ didReceiveMessage:(NSDictionary<NSString *, id> *)message
     NSMutableDictionary *mutableMessage = [message mutableCopy];
     mutableMessage[@"id"] = messageId;
     [self.replyHandlers setObject:replyHandler forKey:messageId];
-    
+
     [self dispatchEventWithName:EVENT_RECEIVE_MESSAGE body:mutableMessage];
 }
 
@@ -430,29 +430,29 @@ RCT_EXPORT_METHOD(dequeueFile:
   if (![fileManager fileExistsAtPath:directoryURL.path]) {
     [fileManager createDirectoryAtURL:directoryURL withIntermediateDirectories:YES attributes:nil error:nil];
   }
-  
+
   NSURL *destinationURL = [directoryURL URLByAppendingPathComponent:file.fileURL.lastPathComponent];
   NSError *error;
   [fileManager copyItemAtPath:file.fileURL.path
                        toPath:destinationURL.path
                         error:&error];
-  
+
   NSNumber *timestamp = @(jsTimestamp());
   NSString *id = [timestamp stringValue];
-  
+
   NSDictionary *fileInfo = @{
     @"id": id,
     @"timestamp": timestamp,
     @"url": destinationURL.absoluteString,
     @"metadata": file.metadata != nil ? file.metadata : [NSNull null]
   };
-  
+
   if (error) {
     NSLog(@"Copying received file error: %@ %@", error, error.userInfo);
     [self dispatchEventWithName:EVENT_WATCH_FILE_ERROR body:@{@"fileInfo": fileInfo,  @"error": error, @"errorUserInfo": error.userInfo}];
     return;
   }
-  
+
   [self.queuedFiles setValue:fileInfo forKey:id];
   [self dispatchEventWithName:EVENT_WATCH_FILE_RECEIVED body:fileInfo];
 }
@@ -531,7 +531,7 @@ didReceiveApplicationContext:(NSDictionary<NSString *, id> *)applicationContext 
     } else {
         [self dispatchEventWithName:EVENT_APPLICATION_CONTEXT_RECEIVED body:applicationContext];
     }
-    
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -573,10 +573,13 @@ RCT_EXPORT_METHOD(dequeueUserInfo:
 }
 
 - (void)session:(WCSession *)session didFinishUserInfoTransfer:(WCSessionUserInfoTransfer *)userInfoTransfer error:(NSError *)error {
-    if (error) {
-        NSLog(@"User info transfer error: %@ %@", error, [error userInfo]);
-      [self dispatchEventWithName:EVENT_WATCH_USER_INFO_ERROR body:@{@"userInfo": [userInfoTransfer userInfo], @"error": dictionaryFromError(error)}];
-    }
+   NSDictionary *userInfo = [userInfoTransfer userInfo];
+   if (userInfo == nil) {
+       NSLog(@"User info is nil");
+   } else if (error) {
+       NSLog(@"User info transfer error: %@ %@", error, [error userInfo]);
+       [self dispatchEventWithName:EVENT_WATCH_USER_INFO_ERROR body:@{@"userInfo": userInfo, @"error": dictionaryFromError(error)}];
+   }
 }
 
 - (void)   session:(WCSession *)session
@@ -593,7 +596,7 @@ didReceiveUserInfo:(NSDictionary<NSString *, id> *)userInfo {
 
 - (void)dispatchEventWithName:(NSString *)name
                          body:(NSDictionary<NSString *, id> *)body {
-    
+
   if (!hasObservers) {
       [pendingEvents addObject:@{@"name": name, @"body": body}];
   } else {
